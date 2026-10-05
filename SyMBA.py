@@ -65,7 +65,6 @@ def dh_to_cartesian(Q,P,m):
             P[1:] : barycentric momenta.
         m : (N, )
             Masses; index 0 denotes the Sun.
-
         Returns
         -------
         q : (N, 3)
@@ -170,13 +169,13 @@ def kepler_drift(Q, P, m, dt, G=1.0):
 def dh_step(Q,P,m,dt,G = 1.0):
     sun_drift(Q,P,m,dt/2)
 
-    interaction_kick(Q,P,m,dt/2)
+    interaction_kick(Q,P,m,dt/2,G)
 
-    kepler_drift(Q,P,m,dt)
+    kepler_drift(Q,P,m,dt, G)
 
-    interaction_kick(Q,P,m,dt)
+    interaction_kick(Q,P,m,dt/2, G)
 
-    sun_drift(Q,P,m,dt)
+    sun_drift(Q,P,m,dt/2)
 
     Q[0] += dt * P[0] / np.sum(m) #important, easy to miss
 
@@ -197,6 +196,71 @@ def total_energy(Q, P, m, G=1.0):
             potential -= G * m[i] * m[j] / distance
 
     return kinetic + potential
+
+def weight_changing_function(r,r_outer,r_inner):
+    """smooth function is chosen as 2*x**3 - 3*x**2 + 1. as in the paper"""
+    if not (r_outer > r_inner > 0.0):
+        raise ValueError("Require r_outer > r_inner > 0.")
+
+    if r < 0.0:
+        raise ValueError("Distance must be nonnegative.")
+
+    if r <= r_inner:
+        return 0.0
+
+    if r >= r_outer:
+        return 1.0
+
+    x = (r_outer - r) / (r_outer - r_inner)
+
+    return 2*x**3 - 3*x**2 + 1
+
+
+def level_weights(r, radii):
+    """
+    Return weights for shell 0 ... L.
+
+    radii = [R_0, ..., R_L], the radius for each shell L strictly decreasing.
+    The deepest level receives the remaining force.
+    """
+    radii = np.asarray(radii, dtype=float)
+
+    if radii.ndim != 1 or len(radii) == 0:
+        raise ValueError("radii must be a nonempty 1D array.")
+
+    if not np.all(radii > 0.0):
+        raise ValueError("Radii must be positive.")
+
+    if not np.all(np.diff(radii) < 0.0):
+        raise ValueError("Radii must be strictly decreasing.")
+
+    if r < 0.0:
+        raise ValueError("Distance must be nonnegative.")
+
+    L = len(radii) - 1
+
+    if L == 0:
+        return np.array([1.0])
+
+    cumulative = np.array([weight_changing_function(r,radii[k],radii[k+1]) for k in range(L)])
+
+    weights = np.empty(len(radii))
+    weights[0] = cumulative[0]
+    weights[1:L] = np.diff(cumulative)
+    weights[L] = 1.0 - cumulative[-1]
+
+    np.testing.assert_allclose(np.sum(weights), 1, rtol=0, atol=1e-14)
+
+    return weights
+
+def make_radii():
+    pass
+
+def level_wise_interaction_kick():
+    pass
+
+def evolve_level():
+    pass
 
 
 
