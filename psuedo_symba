@@ -1,0 +1,18 @@
+
+def symba_step(sim, h):
+    sun_drift(h/2)
+    recursive_interaction(level=0, dt=h)
+    sun_drift(h/2)
+
+
+def recursive_interaction(level, dt):
+    kick_force_component(level, dt/2)
+
+    if needs_deeper(level): // if any pairs comes into deeper shell
+        sub_dt = dt / M
+        for _ in range(M):
+            recursive_interaction(level + 1, sub_dt)
+    else:
+        kepler_evolve(dt)
+
+    kick_force_component(level, dt/2)
