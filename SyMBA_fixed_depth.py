@@ -284,8 +284,11 @@ def evolve_level(Q, P, m, dt, level,radii, G=1.0):
 
 def symba_step(Q, P, m, dt,radii, G=1.0):
     sun_drift(Q,P,m,dt/2)
+
     evolve_level(Q, P, m, dt, 0, radii, G)
+
     sun_drift(Q,P,m,dt/2)
+
     Q[0] += dt * P[0] / np.sum(m)
 
 

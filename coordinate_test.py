@@ -1,5 +1,5 @@
 import numpy as np
-from SyMBA import cartesian_to_dh, dh_to_cartesian
+from SyMBA_fixed_depth import cartesian_to_dh, dh_to_cartesian
 
 
 
