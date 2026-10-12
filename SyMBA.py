@@ -253,14 +253,39 @@ def level_weights(r, radii):
 
     return weights
 
-def make_radii():
-    pass
+def make_radii(r_outer, total_levels, ratio = 2.08 ):
+    levels = np.arange(0, total_levels, 1)
+    radii = r_outer / ratio ** levels
+    return radii
 
-def level_wise_interaction_kick():
-    pass
 
-def evolve_level():
-    pass
+def level_wise_interaction_kick(Q, P, m, dt,level,radii, G=1.0):
+    n = len(m)
+    for i in range(1, n):
+        for j in range(i + 1, n):  # deal with all pairs of particles
+            r = Q[j] - Q[i]
+            r2 = np.dot(r, r)
+            weights = level_weights(np.sqrt(r2), radii)
+            force = G * m[i] * m[j] * r / (r2 * np.sqrt(r2))
+            impulse = dt * force * weights[level]
+            P[i] += impulse
+            P[j] -= impulse
 
+def evolve_level(Q, P, m, dt, level,radii, G=1.0):
+    max_level = len(radii) - 1
+    level_wise_interaction_kick(Q, P, m, dt/2,level,radii, G)
+    if level == max_level:
+        kepler_drift(Q, P, m, dt, G)
+    else:
+        next_dt = dt / 3
+        for _ in range(3):
+            evolve_level(Q, P, m, next_dt, level+1, radii, G)
+    level_wise_interaction_kick(Q, P, m, dt/2,level,radii, G)
+
+def symba_step(Q, P, m, dt,radii, G=1.0):
+    sun_drift(Q,P,m,dt/2)
+    evolve_level(Q, P, m, dt, 0, radii, G)
+    sun_drift(Q,P,m,dt/2)
+    Q[0] += dt * P[0] / np.sum(m)
 
 

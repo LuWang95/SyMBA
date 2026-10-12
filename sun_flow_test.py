@@ -1,4 +1,3 @@
-import numpy as np
 from SyMBA import *
 
 
@@ -283,7 +282,76 @@ def test_force_weight():
 
     print("force_weights test passed")
 
+def test_level_wise_interaction_kick():
+    m = np.array([1.0, 1e-3, 2e-3, 1.5e-3])
+    G = 1.0
+    dt = 0.02
 
+    Q0 = np.array([
+        [0.2, -0.1, 0.3],
+        [1.0, 0.0, 0.0],
+        [1.75, 0.0, 0.0],
+        [1.75, 0.375, 0.0],
+    ])
+
+    P0 = np.array([
+        [0.01, -0.02, 0.0],
+        [0.0, 1e-3, 0.0],
+        [0.0, 1.5e-3, 0.0],
+        [-1e-4, 1e-3, 0.0],
+    ])
+
+    radii = make_radii(1.0, 3, ratio=2.0)
+    Q_full, P_full = Q0.copy(), P0.copy()
+    interaction_kick(Q_full, P_full, m, dt, G)
+
+    Q_split, P_split = Q0.copy(), P0.copy()
+    for level in range(len(radii)):
+        level_wise_interaction_kick(
+            Q_split, P_split, m, dt, level, radii, G
+        )
+
+    np.testing.assert_array_equal(Q_split, Q0)
+    np.testing.assert_allclose(
+        P_split, P_full, rtol=0, atol=1e-14
+    )
+    print("level_wise_interaction_kick test passed")
+
+def test_symba_components():
+    m = np.array([1.0, 1e-3, 2e-3, 1.5e-3])
+    G = 1.0
+    dt = 0.02
+
+    Q0 = np.array([
+        [0.2, -0.1, 0.3],
+        [1.0, 0.0, 0.0],
+        [1.75, 0.0, 0.0],
+        [1.75, 0.375, 0.0],
+    ])
+
+    P0 = np.array([
+        [0.01, -0.02, 0.0],
+        [0.0, 1e-3, 0.0],
+        [0.0, 1.5e-3, 0.0],
+        [-1e-4, 1e-3, 0.0],
+    ])
+
+    radii_zero = make_radii(1.0,1)
+
+    Q_dh, P_dh = Q0.copy(), P0.copy()
+    Q_symba, P_symba = Q0.copy(), P0.copy()
+
+    dh_step(Q_dh, P_dh, m, dt, G)
+    symba_step(Q_symba, P_symba, m, dt, radii_zero, G)
+
+    np.testing.assert_allclose(
+        Q_symba, Q_dh, rtol=0, atol=1e-14
+    )
+    np.testing.assert_allclose(
+        P_symba, P_dh, rtol=0, atol=1e-14
+    )
+
+    print("same as DH")
 
 if __name__ == "__main__":
     coordinate_test()
@@ -292,3 +360,5 @@ if __name__ == "__main__":
     test_kepler_single()
     test_dh_step()
     test_dh_step_ratio()
+    test_level_wise_interaction_kick()
+    test_symba_components()
