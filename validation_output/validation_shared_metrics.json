@@ -1,0 +1,26 @@
+{
+  "fixed": {
+    "max_position_error": 2.3138022251545798e-10,
+    "max_velocity_error": 3.100242350187129e-09,
+    "max_relative_energy_error_at_outputs": 1.596738595334074e-09,
+    "max_relative_angular_error_at_outputs": 4.131328222294635e-15,
+    "minimum_sampled_pair_distance": 0.018975460108545478,
+    "individual_kepler_solves": 43200
+  },
+  "adaptive": {
+    "max_position_error": 2.313792473513684e-10,
+    "max_velocity_error": 3.1002470041029835e-09,
+    "max_relative_energy_error_at_outputs": 1.596737810274232e-09,
+    "max_relative_angular_error_at_outputs": 2.655853857189408e-15,
+    "minimum_sampled_pair_distance": 0.018975460108549187,
+    "individual_kepler_solves": 14304
+  },
+  "optimized": {
+    "max_position_error": 2.31379269195809e-10,
+    "max_velocity_error": 3.1002470041029835e-09,
+    "max_relative_energy_error_at_outputs": 1.596737810274232e-09,
+    "max_relative_angular_error_at_outputs": 3.688685912763067e-15,
+    "minimum_sampled_pair_distance": 0.018975460108548937,
+    "individual_kepler_solves": 10232
+  }
+}

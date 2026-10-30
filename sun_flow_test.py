@@ -448,11 +448,10 @@ def test_symba_convergence():
     print("order_from_position:", order_from_position)
     print("order_from_velocity:", order_from_velocity)
 
-def integrate_ias15(q, v, m, G, t_end,epsilon = 1e-9):
+def integrate_ias15(q, v, m, G, t_end):
     sim = rebound.Simulation()
     sim.G = G
     sim.integrator = "ias15"
-    sim.integrator.epsilon = epsilon
 
     for i in range(len(m)):
         sim.add(m=m[i],x=q[i, 0],y=q[i, 1],z=q[i, 2],vx=v[i, 0],vy=v[i, 1],vz=v[i, 2])
@@ -478,11 +477,10 @@ def integrate_symba(q, v, m, G, dt, t_end, radii):
 
     return q_final, v_final
 
-def ias15_with_trajectory(q, v, m, G, times, epsilon=1e-12):
+def ias15_with_trajectory(q, v, m, G, times):
     sim = rebound.Simulation()
     sim.G = G
     sim.integrator = "ias15"
-    sim.integrator.epsilon = epsilon
 
     for i in range(len(m)):
         sim.add(m=m[i], x=q[i, 0], y=q[i, 1], z=q[i, 2], vx=v[i, 0], vy=v[i, 1], vz=v[i, 2])
@@ -511,17 +509,7 @@ def test_against_ias15():
     radii = make_radii(r_outer=0.5, total_levels=3, ratio=2.08)
     t_end = 1.0
 
-    q_ref, v_ref = integrate_ias15(q, v, m, G, t_end, epsilon=1e-12)
-    q_ref_tight, v_ref_tight = integrate_ias15(q, v, m, G, t_end, epsilon=1e-13)
-
-    reference_q_change = np.max(np.linalg.norm(q_ref_tight - q_ref, axis=1))
-    reference_v_change = np.max(np.linalg.norm(v_ref_tight - v_ref, axis=1))
-
-    print("IAS15 reference position change:", reference_q_change)
-    print("IAS15 reference velocity change:", reference_v_change)
-
-    q_ref = q_ref_tight
-    v_ref = v_ref_tight
+    q_ref, v_ref = integrate_ias15(q, v, m, G, t_end)
 
     for dt in [0.02, 0.01, 0.005]:
         q_symba, v_symba = integrate_symba(
@@ -541,39 +529,28 @@ def test_against_ias15():
         )
 
 
+def test_symba_shells():
+    sim = rebound.Simulation()
+    sim.G = 1.0
+    sim.add(m=1.0)
+    sim.add(m=1e-3, a=1.0)
+    sim.add(m=5e-3, a=1.25)
+    sim.move_to_com()
 
-def test_symba_shell_crossing():
     G = 1.0
-    m = np.array([1.0, 1e-4, 1e-4])
-    q = np.array([[0.0, 0.0, 0.0],
-                  [1.0, -0.15, -0.01],
-                  [1.0, 0.15, 0.01],
-                  ])
-    v = np.array([[0.0, 0.0, 0.0],
-                  [0.0, 1.6, 0.0],
-                  [0.0, 0.4, 0.0],])
+    m = np.array([b.m for b in sim.particles])
+    q = np.array([[b.x, b.y, b.z]for b in sim.particles])
+    v = np.array([[b.vx, b.vy, b.vz]for b in sim.particles])
 
-    radii = make_radii(r_outer=0.12, total_levels=4, ratio=2.08)
+    radii = make_radii(r_outer=0.3, total_levels=4, ratio=2.08)
 
     dt = 0.005
-    t_end = 0.48
+    t_end = 32
     n_steps = round(t_end / dt)
 
     times = np.arange(n_steps + 1) * dt
 
-    q_ref, v_ref = ias15_with_trajectory(q, v, m, G, times, epsilon=1e-12)
-    q_ref_tight, v_ref_tight = ias15_with_trajectory(q, v, m, G, times, epsilon=1e-13)
-
-    reference_position_change = np.max(np.linalg.norm(q_ref_tight - q_ref, axis=2))
-    reference_velocity_change = np.max(np.linalg.norm(v_ref_tight - v_ref, axis=2))
-
-    print("IAS15 reference position change:", reference_position_change)
-    print("IAS15 reference velocity change:", reference_velocity_change)
-
-
-    q_ref = q_ref_tight
-    v_ref = v_ref_tight
-
+    q_ref, v_ref = ias15_with_trajectory(q, v, m, G, times)
 
     p = m[:, None] * v
     Q, P = cartesian_to_dh(q, p, m)
@@ -619,9 +596,7 @@ def test_symba_shell_crossing():
     print("maximum absolute position error:", np.max(position_abs_errors))
     print("maximum absolute velocity error:", np.max(velocity_abs_errors))
     print("maximum relative energy error:",np.max(np.abs(energy_errors)))
-    print("shell crossing test passed")
 
-    # Plot diagnostics.
     fig, axes = plt.subplots(5, 1, figsize=(9, 13), sharex=True)
     axes[0].plot(times, distances, label="SyMBA")
     axes[0].plot(times, reference_distances, "--", label="IAS15")
@@ -661,6 +636,7 @@ def test_symba_shell_crossing():
 
     for ax in axes:
         ax.grid(alpha=0.2)
+        ax.set_xlim(28.5, 30.5)
 
     plt.show()
 
@@ -672,8 +648,6 @@ def test_symba_shell_crossing():
         "position_errors": position_abs_errors,
         "velocity_errors": velocity_abs_errors,
     }
-
-
 
 if __name__ == "__main__":
     # coordinate_test()
@@ -688,4 +662,4 @@ if __name__ == "__main__":
     # test_symba_reversibility()
     # test_symba_convergence()
     # test_against_ias15()
-    test_symba_shell_crossing()
+    test_symba_shells()
